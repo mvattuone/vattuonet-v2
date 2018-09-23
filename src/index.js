@@ -113,7 +113,7 @@ function main() {
   const source = new Layer('#source');
   const overlay = new Layer('#overlay');
   source.context.drawImage(image, 0, 0);
-  const grid = new Grid(70, 70);
+  const grid = new Grid(16, 16);
   const conway = new Conway();
   let start = 0;
   const databender = new Databender(effectsConfig);

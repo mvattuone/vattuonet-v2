@@ -3651,7 +3651,7 @@ var vattuonet = (function () {
     const source = new Layer('#source');
     const overlay = new Layer('#overlay');
     source.context.drawImage(image, 0, 0);
-    const grid = new Grid(70, 70);
+    const grid = new Grid(16, 16);
     const conway = new Conway();
     const databender = new databend(effectsConfig);
     handleDatGUI(databender, source.canvas, source.context, overlay.context);
