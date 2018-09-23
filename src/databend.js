@@ -1,4 +1,3 @@
-var Tuna = require('tunajs'); 
 var effects = require('./effects');
 window.random = require('random-js')();
 
@@ -54,33 +53,24 @@ module.exports = function (config, audioCtx) {
     }, {});
     var activeEffectsIndex = Object.keys(activeEffects);
 
+    bufferSource.start();
+
     if (activeEffectsIndex && activeEffectsIndex.length) {
       activeEffectsIndex.forEach((effect) => {
         if (effect === 'detune' || effect === 'playbackRate') {
-          return effects[effect](bufferSource, this.config)
+          effects[effect](bufferSource, this.config)
+          activeEffectsIndex.pop();
         }
       });
     }
 
-    bufferSource.start();
-
-    if (activeEffectsIndex && activeEffectsIndex.length) {
-      var tuna = new Tuna(offlineAudioCtx);
-
-      var nodes = activeEffectsIndex.map((effect) => { 
-        if (effect !== 'detune' && effect !== 'playbackRate') {
-          if (effect === 'biquad') {
-            return effects[effect](bufferSource, offlineAudioCtx, this.config);
-          } else {
-            return effects[effect](tuna, this.config);
-          }
-        }
-      }).filter(Boolean);
-    }
-
-    if (!nodes || nodes.length === 0 || bypass) {
+    if (!activeEffectsIndex.length) {
       bufferSource.connect(offlineAudioCtx.destination);
     } else {
+      var nodes = activeEffectsIndex.map((effect) => { 
+        return effects[effect](bufferSource, this.config, offlineAudioCtx);
+      }).filter(Boolean);
+
       nodes.forEach((node) => { 
         bufferSource.connect(node);
         node.connect(offlineAudioCtx.destination);
