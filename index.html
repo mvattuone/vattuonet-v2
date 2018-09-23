@@ -10,15 +10,18 @@
 
       body {
         display: grid;
-        grid-template-columns: [image-container] 6fr [text-container] 6fr;
+        grid-template-columns: repeat(12, 1fr, [col-start]);
+        min-height: 100vh;
       }
 
       .image-container {
-        grid-area: image-container;
+        grid-column-start: 1;
+        grid-column-end: 6;
       }
 
       .text-container {
-        grid-area: text-container; 
+        align-self: center;
+        grid-column-start: 6;
         padding: 0 40px;
       }
 
