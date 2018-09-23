@@ -1,4 +1,4 @@
-const { effects: effectsConfig } = require('./config');
+const { effectsConfig } = require('./config');
 const Databender = require('./databend.js');
 const dat = require('dat.gui');
 
