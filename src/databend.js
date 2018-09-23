@@ -1,5 +1,4 @@
 var effects = require('./effects');
-window.random = require('random-js')();
 
 // Create a Databender instance
 module.exports = function (config, audioCtx) {
