@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Vattuonet</title>
+    <style>
+      html, body {
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        grid-template-columns: [image-container] 6fr [text-container] 6fr;
+      }
+
+      .image-container {
+        grid-area: image-container;
+      }
+
+      .text-container {
+        grid-area: text-container; 
+        padding: 0 40px;
+      }
+
+      img {
+        display: none;
+      }
+
+      #source, 
+      #overlay {
+        position: absolute;
+      }
+
+      #source {
+        display: none;
+        z-index: 1;
+      }
+
+      #overlay {
+        pointer-events: none;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="image-container">
+      <img src="me-and-reno.jpg" />
+      <canvas id="source"></canvas>
+      <canvas id="overlay"></canvas>
+      <script src="bundle.js"></script>
+    </div>
+    <div class="text-container">
+      <h1>mike vattuone</h1>
+      <p>"he does stuff on the internet"</p>
+      <a href="mailto:mike@vattuo.net">email me</a>
+      <a href="https://github.com/mvattuone">see my github</a>
+    </div>
+  </body>
+</html>
