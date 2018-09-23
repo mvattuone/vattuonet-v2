@@ -1,4 +1,5 @@
 const { effectsConfig } = require('./config');
+const random = require("random-js")();
 const Databender = require('./databend.js');
 const dat = require('dat.gui');
 
@@ -14,82 +15,50 @@ function handleDatGUI(databender, canvas, context, overlayContext) {
   });
 };
 
-class Cell {
-  constructor(grid, row, index) {
-    this.grid = grid;
-    this.row = row;
-    this.index = index;
-    this.value = Math.round(Math.random());
-  }
-
-  getNeighbors() {
-    const isFirstRow = this.row === 0;
-    const isLastRow  = this.row === this.grid.cells.length - 1;
-    const isFirstColumn = this.index === 0;
-    const isLastColumn  = this.index === this.grid.cells[0].length - 1; // Kinda weird
-
-    const top = !isFirstRow ? this.grid.cells[this.row - 1][this.index] : null;
-    const bottom =  !isLastRow ? this.grid.cells[this.row + 1][this.index] : null;
-    const left = !isFirstColumn ? this.grid.cells[this.row][this.index - 1] : null;
-    const right = !isLastColumn ? this.grid.cells[this.row][this.index + 1] : null;
-    const topLeft = !isFirstRow && !isFirstColumn ? this.grid.cells[this.row - 1][this.index - 1] : null;
-    const topRight = !isFirstRow && !isLastColumn ? this.grid.cells[this.row - 1][this.index + 1] : null;
-    const bottomLeft = !isLastRow && !isFirstColumn? this.grid.cells[this.row + 1][this.index - 1] : null;
-    const bottomRight = !isLastRow && !isLastColumn ? this.grid.cells[this.row + 1][this.index + 1] : null;
-
-    return [
-      left, topLeft, top, topRight, right, bottomRight, bottom, bottomLeft
-    ].filter(Boolean);
-  }
-
-  isAlive() { 
-    return this.value === 1;
-  }
-
-  isDead() {
-    return this.value === 0;
-  }
-
-  die() {
-    this.value = 0;
-  }
-
-  live() {
-    this.value = 1;
-  }
-}
-
 class Grid {
   constructor(rows, columns) {
     this.rows = rows;
     this.columns = columns;
-    this.cells = Array.from({ length: rows }, (row, i) => 
-      Array.from({ length: columns}, (cell, j) =>  
-        new Cell(this, i, j)))
+    this.cells = Uint8Array.from({ length: columns * rows }, (cell, i) => {
+      return random.integer(0, 1);
+    });
+  }
+
+  getNeighbors(i) {
+    const rowIndex = this.columns - 1;
+    const sizeIndex = this.cells.length - 1;
+    const left = i % this.columns != 0 ? this.cells[i-1] : 0;
+    const topLeft = i % this.columns != 0 && i > rowIndex ? this.cells[i-this.columns-1] : 0;
+    const top = i > rowIndex ? this.cells[i-this.columns] : 0;
+    const topRight = i % this.columns != 3 && i > rowIndex ? this.cells[i-this.columns+1] : 0;
+    const right = i % this.columns != 3 ? this.cells[i+1] : 0;
+    const bottomRight = i % this.columns != 3 && i < this.cells.length - this.columns ? this.cells[i+this.columns+1] : 0;
+    const bottom = i < this.cells.length - this.columns ? this.cells[i+this.columns] : 0;
+    const bottomLeft = i % rowIndex === 1 && i < sizeIndex - rowIndex ? this.cells[i + this.columns - 1] : 0;
+    return [
+      left, topLeft, top, topRight, right, bottomRight, bottom, bottomLeft
+    ].filter(Boolean);
   }
 }
 
 class Conway {
   update(grid) {
-    return grid.cells.map((row, i) => {
-      row.map((cell, i) => {
-        const neighbors = cell.getNeighbors();
-        const livingNeighbors = neighbors.reduce((acc, cur) => 
-          cur.isAlive() ? acc += 1 : acc, 0)
+    return grid.cells.map((cell, i) => {
+      const neighbors = grid.getNeighbors(i);
+      const livingNeighbors = neighbors.reduce((acc, cur) => 
+        cur === 1 ? acc += 1 : acc, 0)
 
-        if (cell.isDead()) {
-          if (livingNeighbors == 3) {
-            cell.live();
-          }
-        } else {
-          if (livingNeighbors < 2 || livingNeighbors > 3) { 
-            cell.die();
-          } 
+      if (cell === 0) {
+        if (livingNeighbors == 3) {
+          cell = 1;
         }
+      } else {
+        if (livingNeighbors < 2 || livingNeighbors > 3) { 
+          cell = 0;
+        } 
+      }
 
-        return cell; 
-      });
-      return row;
+      return cell; 
     });
   }
 }
@@ -123,19 +92,22 @@ function main() {
 
   function step() {
     grid.cells = conway.update(grid);
-    grid.cells.forEach(function(row, index) { 
-      const gridY = (source.canvas.height / grid.rows) * index;
-      row.forEach(function(cell, index) {
-        const gridX = (source.canvas.width / grid.columns) * index;
-        const cellWidth = source.canvas.width / grid.columns;
-        const cellHeight = source.canvas.height / grid.rows;
-        const imageData = source.context.getImageData(gridX, gridY, cellWidth, cellHeight)
-        if (cell.isAlive()) {
-          databender.bend(imageData, overlay.context, gridX, gridY).catch((e) => console.error(e));
-        } else {
-          overlay.clear(gridX, gridY, cellWidth, cellHeight); 
-        }
-      });
+    let row = 0;
+    let column = 0;
+    grid.cells.forEach(function(cell, index) {
+      if (index > 0 && index % grid.columns === 0) row++;
+      column = index % grid.columns;
+
+      const gridY = row > 0 ? (source.canvas.height / grid.rows) * row : 0;
+      const gridX = (source.canvas.width / grid.columns) * column;
+      const cellWidth = source.canvas.width / grid.columns;
+      const cellHeight = source.canvas.height / grid.rows;
+      const imageData = source.context.getImageData(gridX, gridY, cellWidth, cellHeight)
+      if (cell === 1) {
+        databender.bend(imageData, overlay.context, gridX, gridY)
+      } else {
+        overlay.clear(gridX, gridY, cellWidth, cellHeight); 
+      }
     });
 
     requestAnimationFrame(step);

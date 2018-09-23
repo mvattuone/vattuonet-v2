@@ -101,7 +101,7 @@ module.exports = function (config, audioCtx) {
   this.bend = function (data, context, x, y) { 
     return this.convert(data)
       .then((buffer) => this.render(buffer))
-      .then((buffer) => this.draw(buffer, context, x, y))
+      .then((buffer) => this.draw(buffer, context, x, y));
   };
 
   return this;
