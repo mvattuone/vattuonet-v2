@@ -105,13 +105,17 @@ class Layer {
   clear(x = 0, y = 0, width = this.canvas.width, height = this.canvas.height) {
     this.context.clearRect(x, y, width, height);
   }
+
+  draw(image) {
+    this.context.drawImage(image, 0, 0);
+  }
 }
 
 function main() {
   const image = document.querySelector('img');
   const source = new Layer('#source');
   const overlay = new Layer('#overlay');
-  source.context.drawImage(image, 0, 0);
+  source.draw(image, 0, 0);
   const grid = new Grid(16, 16);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
