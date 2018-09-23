@@ -3615,8 +3615,6 @@ var vattuonet = (function () {
           const livingNeighbors = neighbors.reduce((acc, cur) => 
             cur.isAlive() ? acc += 1 : acc, 0);
 
-          const oldCell = cell.value;
-
           if (cell.isDead()) {
             if (livingNeighbors == 3) {
               cell.live();

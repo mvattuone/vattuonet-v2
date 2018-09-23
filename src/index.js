@@ -77,8 +77,6 @@ class Conway {
         const livingNeighbors = neighbors.reduce((acc, cur) => 
           cur.isAlive() ? acc += 1 : acc, 0)
 
-        const oldCell = cell.value;
-
         if (cell.isDead()) {
           if (livingNeighbors == 3) {
             cell.live();
@@ -116,7 +114,6 @@ function main() {
   source.context.drawImage(image, 0, 0);
   const grid = new Grid(16, 16);
   const conway = new Conway();
-  let start = 0;
   const databender = new Databender(effectsConfig);
   handleDatGUI(databender, source.canvas, source.context, overlay.context);
 
