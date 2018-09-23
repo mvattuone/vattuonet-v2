@@ -131,16 +131,7 @@ function main() {
         const cellHeight = source.canvas.height / grid.rows;
         const imageData = source.context.getImageData(gridX, gridY, cellWidth, cellHeight)
         if (cell.isAlive()) {
-          if (!cell.cachedBuffer || databender.configHasChanged()) {
-            databender.bend(imageData, overlay.context, gridX, gridY).then((buffer) => {
-              cell.databentBuffer = buffer;
-              databender.draw(buffer, overlay.context, gridX, gridY);
-            }).catch((e) => {
-              console.error(e);
-            });
-          } else {
-            databender.draw(cell.databentBuffer, overlay.context, gridX, gridY);
-          }
+          databender.bend(imageData, overlay.context, gridX, gridY).catch((e) => console.error(e));
         } else {
           overlay.clear(gridX, gridY, cellWidth, cellHeight); 
         }
