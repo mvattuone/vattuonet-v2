@@ -1,45 +1,7 @@
 var vattuonet = (function () {
   'use strict';
 
-  const options = {
-    playAudio: false,
-    frameRate: 30
-  };
-
-  const tools = {
-    Brush: {
-      active: false,
-      size: 48
-    },
-    Fill: {
-      active: false
-    }
-  };
-
-  const effects = {
-    bitcrusher: {
-      active: false,
-      bits: 4,
-      normfreq: 0.1,
-      bufferSize: 256
-    },
-    convolver: {
-      active: false,
-      highCut: 22050,
-      lowCut: 20,
-      dryLevel: 1,
-      wetLevel: 1,
-      level: 1,
-      impulse: "CathedralRoom.wav" 
-    },
-    chorus: {
-      active: false,
-      feedback: 0.4,
-      delay: 0.0045,
-      depth: 0.7,
-      rate: 1.5,
-      bypass: 0
-    },
+  const effectsConfig = {
     biquad: {
       active: true,
       areaOfEffect: 1,
@@ -70,37 +32,11 @@ var vattuonet = (function () {
       randomize: false,
       randomValues: 2,
       value: 1
-    },
-    pingPong: {
-      active: false,
-      feedback: 0.3,
-      wetLevel: 2.5,
-      delayTimeLeft: 10,
-      delayTimeRight: 10
-    },
-    phaser: {
-      active: false,
-      rate: 1.2,
-      depth: 0.4,
-      feedback: 0.5,
-      stereoPhase: 10,
-      baseModulationFrequency: 500
-    },
-    wahwah: {
-      active: false,
-      automode: true,
-      baseFrequency: 0.5,
-      excursionOctaves: 2,
-      sweep: 0.2,
-      resonance: 10,
-      sensitivity: 0.5
     }
   };
 
   var config = {
-    options,
-    tools,
-    effects
+    effectsConfig
   };
 
   var biquad  = (bufferSource, config, offlineAudioCtx) => {
@@ -169,7 +105,7 @@ var vattuonet = (function () {
   var gain$1 = gain;
   var playbackRate$1 = playbackRate;
 
-  var effects$1 = {
+  var effects = {
   	biquad: biquad$1,
   	detune: detune$1,
   	gain: gain$1,
@@ -223,7 +159,7 @@ var vattuonet = (function () {
       bufferSource.buffer = buffer; 
 
       var activeEffects = this.configKeys.reduce((acc, cur) => {
-        this.config[cur].active ? acc[cur] = effects$1[cur] : false; 
+        this.config[cur].active ? acc[cur] = effects[cur] : false; 
         return acc;
       }, {});
       var activeEffectsIndex = Object.keys(activeEffects);
@@ -233,7 +169,7 @@ var vattuonet = (function () {
       if (activeEffectsIndex && activeEffectsIndex.length) {
         activeEffectsIndex.forEach((effect) => {
           if (effect === 'detune' || effect === 'playbackRate') {
-            effects$1[effect](bufferSource, this.config);
+            effects[effect](bufferSource, this.config);
             activeEffectsIndex.pop();
           }
         });
@@ -243,7 +179,7 @@ var vattuonet = (function () {
         bufferSource.connect(offlineAudioCtx.destination);
       } else {
         var nodes = activeEffectsIndex.map((effect) => { 
-          return effects$1[effect](bufferSource, this.config, offlineAudioCtx);
+          return effects[effect](bufferSource, this.config, offlineAudioCtx);
         }).filter(Boolean);
 
         nodes.forEach((node) => { 
@@ -277,6 +213,7 @@ var vattuonet = (function () {
     this.bend = function (data, context, x, y) { 
       return this.convert(data)
         .then((buffer) => this.render(buffer))
+        .then((buffer) => this.draw(buffer, context, x, y))
     };
 
     return this;
@@ -2807,7 +2744,7 @@ var vattuonet = (function () {
 
   var dat = ( dat_gui_module && index ) || dat_gui_module;
 
-  const { effects: effectsConfig } = config;
+  const { effectsConfig: effectsConfig$1 } = config;
 
 
 
@@ -2815,10 +2752,10 @@ var vattuonet = (function () {
     const gui = new dat.GUI();
 
     const effectsTab = gui.addFolder('Effects');
-    Object.keys(effectsConfig).forEach(effect => {
+    Object.keys(effectsConfig$1).forEach(effect => {
       const effectTab = effectsTab.addFolder(effect);
-      Object.keys(effectsConfig[effect]).forEach(function (param) {
-        effectTab.add(effectsConfig[effect], param).listen();            
+      Object.keys(effectsConfig$1[effect]).forEach(function (param) {
+        effectTab.add(effectsConfig$1[effect], param).listen();            
       });
     });
   }
@@ -2914,7 +2851,7 @@ var vattuonet = (function () {
       this.context.clearRect(x, y, width, height);
     }
 
-    draw() {
+    draw(image) {
       this.context.drawImage(image, 0, 0);
     }
   }
@@ -2926,7 +2863,7 @@ var vattuonet = (function () {
     source.draw(image, 0, 0);
     const grid = new Grid(16, 16);
     const conway = new Conway();
-    const databender = new databend(effectsConfig);
+    const databender = new databend(effectsConfig$1);
     handleDatGUI(databender, source.canvas, source.context, overlay.context);
 
     function step() {
@@ -2939,16 +2876,7 @@ var vattuonet = (function () {
           const cellHeight = source.canvas.height / grid.rows;
           const imageData = source.context.getImageData(gridX, gridY, cellWidth, cellHeight);
           if (cell.isAlive()) {
-            if (!cell.cachedBuffer || databender.configHasChanged()) {
-              databender.bend(imageData, overlay.context, gridX, gridY).then((buffer) => {
-                cell.databentBuffer = buffer;
-                databender.draw(buffer, overlay.context, gridX, gridY);
-              }).catch((e) => {
-                console.error(e);
-              });
-            } else {
-              databender.draw(cell.databentBuffer, overlay.context, gridX, gridY);
-            }
+            databender.bend(imageData, overlay.context, gridX, gridY).catch((e) => console.error(e));
           } else {
             overlay.clear(gridX, gridY, cellWidth, cellHeight); 
           }
