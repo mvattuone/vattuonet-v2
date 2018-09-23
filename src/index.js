@@ -36,9 +36,10 @@ class Cell {
     const topRight = !isFirstRow && !isLastColumn ? this.grid.cells[this.row - 1][this.index + 1] : null;
     const bottomLeft = !isLastRow && !isFirstColumn? this.grid.cells[this.row + 1][this.index - 1] : null;
     const bottomRight = !isLastRow && !isLastColumn ? this.grid.cells[this.row + 1][this.index + 1] : null;
+
     return [
       left, topLeft, top, topRight, right, bottomRight, bottom, bottomLeft
-    ]
+    ].filter(Boolean);
   }
 
   isAlive() { 
@@ -72,7 +73,7 @@ class Conway {
   update(grid) {
     return grid.cells.map((row, i) => {
       row.map((cell, i) => {
-        const neighbors = cell.getNeighbors().filter(Boolean);
+        const neighbors = cell.getNeighbors();
         const livingNeighbors = neighbors.reduce((acc, cur) => 
           cur.isAlive() ? acc += 1 : acc, 0)
 
