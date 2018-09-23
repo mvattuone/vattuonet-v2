@@ -3641,8 +3641,8 @@ var vattuonet = (function () {
       this.canvas.height = window.innerHeight;
     }
 
-    clear() {
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    clear(x = 0, y = 0, width = this.canvas.width, height = this.canvas.height) {
+      this.context.clearRect(x, y, width, height);
     }
   }
 
@@ -3677,7 +3677,7 @@ var vattuonet = (function () {
               databender.draw(cell.databentBuffer, overlay.context, gridX, gridY);
             }
           } else {
-            overlay.context.clearRect(gridX, gridY, cellWidth, cellHeight); 
+            overlay.clear(gridX, gridY, cellWidth, cellHeight); 
           }
         });
       });
