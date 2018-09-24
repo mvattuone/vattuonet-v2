@@ -15,12 +15,31 @@ function handleDatGUI(databender, canvas, context, overlayContext) {
   });
 };
 
+
 class Grid {
-  constructor(rows, columns) {
+  constructor(rows, columns, height, width) {
     this.rows = rows;
     this.columns = columns;
-    this.cells = Uint8Array.from({ length: columns * rows }, (cell, i) => {
-      return random.integer(0, 1);
+    let row = 0;
+    let column = 0;
+    const cellWidth = width / columns;
+    const cellHeight = height / rows;
+    this.cells = Array.from({ length: columns * rows }, (cell, i) => {
+      if (i > 0 && i % this.columns === 0) row++;
+      column = i % this.columns;
+      return new Cell(row, column, cellHeight, cellWidth);
+    });
+  }
+
+  getCellValues() {
+    return Int32Array.from(this.cells, (cell) => {
+      return cell.value;
+    });
+  }
+  
+  setSource(source) {
+    this.cells.forEach((cell) => {
+      cell.imageData = source.context.getImageData(cell.x, cell.y, cell.width, cell.height)
     });
   }
 
@@ -43,10 +62,10 @@ class Grid {
 
 class Conway {
   update(grid) {
-    return grid.cells.map((cell, i) => {
+    return grid.getCellValues().map((cell, i) => {
       const neighbors = grid.getNeighbors(i);
       const livingNeighbors = neighbors.reduce((acc, cur) => 
-        cur === 1 ? acc += 1 : acc, 0)
+        cur.value === 1 ? acc += 1 : acc, 0)
 
       if (cell === 0) {
         if (livingNeighbors == 3) {
@@ -80,34 +99,42 @@ class Layer {
   }
 }
 
+class Cell {
+  constructor(row, column, height, width) {
+    this.x = width * column;
+    this.y = height * row;
+    this.height = height;
+    this.width = width;
+    this.value = random.integer(0, 1);
+  }
+}
+
 function main() {
   const image = document.querySelector('img');
   const source = new Layer('#source');
   const overlay = new Layer('#overlay');
   source.draw(image, 0, 0);
-  const grid = new Grid(16, 16);
+  const grid = new Grid(70, 70, source.canvas.height, source.canvas.width);
+  grid.setSource(source);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
+  const renderMap = new WeakMap();
   handleDatGUI(databender, source.canvas, source.context, overlay.context);
 
   function step() {
-    grid.cells = conway.update(grid);
-    let row = 0;
-    let column = 0;
+    const newCellValues = conway.update(grid);
     grid.cells.forEach(function(cell, index) {
-      if (index > 0 && index % grid.columns === 0) row++;
-      column = index % grid.columns;
-
-      const gridY = row > 0 ? (source.canvas.height / grid.rows) * row : 0;
-      const gridX = (source.canvas.width / grid.columns) * column;
-      const cellWidth = source.canvas.width / grid.columns;
-      const cellHeight = source.canvas.height / grid.rows;
-      const imageData = source.context.getImageData(gridX, gridY, cellWidth, cellHeight)
-      if (cell === 1) {
-        databender.bend(imageData, overlay.context, gridX, gridY)
+      cell.value = newCellValues[index];
+      if (cell.value === 1) {
+        if (!renderMap.get(cell.imageData)) {
+          databender.bend(cell.imageData, overlay.context, cell.x, cell.y).then((buffer) => renderMap.set(cell.imageData, buffer));
+        } else {
+          databender.draw(renderMap.get(cell.imageData), overlay.context, cell.x, cell.y);
+        }
       } else {
-        overlay.clear(gridX, gridY, cellWidth, cellHeight); 
+        overlay.clear(cell.x, cell.y, cell.width, cell.height); 
       }
+  
     });
 
     requestAnimationFrame(step);
