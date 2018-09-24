@@ -36,13 +36,14 @@ class Grid {
       return cell.value;
     });
   }
-  
-  setSource(source) {
-    this.cells.forEach((cell) => {
-      cell.renderedData = source.context.getImageData(cell.x, cell.y, cell.width, cell.height)
-    });
-  }
 
+  reset() { 
+    this.cells.forEach((cell, index) => {
+      cell.value = random.integer(0, 1);
+    });
+
+  }
+  
   getNeighbors(i) {
     const rowIndex = this.columns - 1;
     const sizeIndex = this.cells.length - 1;
@@ -83,11 +84,11 @@ class Conway {
 }
 
 class Layer {
-  constructor(id, height, width) { 
+  constructor(id, height = window.innerHeight, width = window.innerWidth) { 
     this.canvas = document.querySelector(id); 
     this.context = this.canvas.getContext('2d');
-    this.canvas.width = width || window.innerWidth;
-    this.canvas.height = height || window.innerHeight;
+    this.canvas.width = width;
+    this.canvas.height = height;
   }
 
   clear(x = 0, y = 0, width = this.canvas.width, height = this.canvas.height) {
@@ -113,25 +114,30 @@ function main() {
   const image = document.querySelector('img');
   const source = new Layer('#source', 640, 640);
   const overlay = new Layer('#overlay', 640, 640);
-  const grid = new Grid(50, 50, source.canvas.height, source.canvas.width);
+  overlay.context.fillStyle = '#222';
+  overlay.context.fillRect(0, 0, overlay.width, overlay.height);
+  const grid = new Grid(32, 32, source.canvas.height, source.canvas.width);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
   databender.bend(image, source.context).then((buffer) => {
-    grid.setSource(source);
     handleDatGUI(databender, source.canvas, source.context, overlay.context);
     requestAnimationFrame(step);
   }); 
 
   function step() {
     const newCellValues = conway.update(grid);
-    grid.cells.forEach((cell, index) => {
-      cell.value = newCellValues[index];
-      if (cell.value === 1) {
-        overlay.context.putImageData(cell.renderedData, cell.x, cell.y);
-      } else {
-        overlay.clear(cell.x, cell.y, cell.width, cell.height); 
-      }
-    });
+    if (JSON.stringify(newCellValues) === JSON.stringify(grid.getCellValues())) {
+      grid.reset();
+    } else {
+      grid.cells.forEach((cell, index) => {
+        cell.value = newCellValues[index];
+        if (cell.value === 1) {
+          overlay.clear(cell.x, cell.y, cell.width, cell.height); 
+        } else {
+          overlay.context.fillRect(cell.x, cell.y, cell.width, cell.height);
+        }
+      });
+    }
 
     requestAnimationFrame(step);
   }
