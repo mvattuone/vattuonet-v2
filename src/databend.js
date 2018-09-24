@@ -98,9 +98,10 @@ module.exports = function (config, audioCtx) {
     context.putImageData(transformedImage, x, y);
   };
 
-  this.bend = function (data, context, x, y) { 
+  this.bend = function (data, context, x = 0, y = 0) { 
     return this.convert(data)
       .then((buffer) => this.render(buffer))
+      .then((buffer) => this.draw(buffer, context, x, y))
   };
 
   return this;

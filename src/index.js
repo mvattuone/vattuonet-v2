@@ -39,7 +39,7 @@ class Grid {
   
   setSource(source) {
     this.cells.forEach((cell) => {
-      cell.imageData = source.context.getImageData(cell.x, cell.y, cell.width, cell.height)
+      cell.renderedData = source.context.getImageData(cell.x, cell.y, cell.width, cell.height)
     });
   }
 
@@ -83,11 +83,11 @@ class Conway {
 }
 
 class Layer {
-  constructor(id) { 
-    this.canvas = document.querySelector(id);
+  constructor(id, height, width) { 
+    this.canvas = document.querySelector(id); 
     this.context = this.canvas.getContext('2d');
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = width || window.innerWidth;
+    this.canvas.height = height || window.innerHeight;
   }
 
   clear(x = 0, y = 0, width = this.canvas.width, height = this.canvas.height) {
@@ -111,36 +111,31 @@ class Cell {
 
 function main() {
   const image = document.querySelector('img');
-  const source = new Layer('#source');
-  const overlay = new Layer('#overlay');
-  source.draw(image, 0, 0);
-  const grid = new Grid(70, 70, source.canvas.height, source.canvas.width);
-  grid.setSource(source);
+  const source = new Layer('#source', 640, 640);
+  const overlay = new Layer('#overlay', 640, 640);
+  const grid = new Grid(50, 50, source.canvas.height, source.canvas.width);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
-  const renderMap = new WeakMap();
-  handleDatGUI(databender, source.canvas, source.context, overlay.context);
+  databender.bend(image, source.context).then((buffer) => {
+    grid.setSource(source);
+    handleDatGUI(databender, source.canvas, source.context, overlay.context);
+    requestAnimationFrame(step);
+  }); 
 
   function step() {
     const newCellValues = conway.update(grid);
-    grid.cells.forEach(function(cell, index) {
+    grid.cells.forEach((cell, index) => {
       cell.value = newCellValues[index];
       if (cell.value === 1) {
-        if (!renderMap.get(cell.imageData)) {
-          databender.bend(cell.imageData, overlay.context, cell.x, cell.y).then((buffer) => renderMap.set(cell.imageData, buffer));
-        } else {
-          databender.draw(renderMap.get(cell.imageData), overlay.context, cell.x, cell.y);
-        }
+        overlay.context.putImageData(cell.renderedData, cell.x, cell.y);
       } else {
         overlay.clear(cell.x, cell.y, cell.width, cell.height); 
       }
-  
     });
 
     requestAnimationFrame(step);
   }
 
-  requestAnimationFrame(step);
 }
 
 window.onload = () => main();
