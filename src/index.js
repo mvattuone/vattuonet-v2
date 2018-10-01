@@ -3,14 +3,16 @@ const random = require("random-js")();
 const Databender = require('./databend.js');
 const dat = require('dat.gui');
 
-function handleDatGUI(databender, canvas, context, overlayContext) {
+function handleDatGUI(databender, image, source) {
   const gui = new dat.GUI();
 
   const effectsTab = gui.addFolder('Effects');
   Object.keys(effectsConfig).forEach(effect => {
     const effectTab = effectsTab.addFolder(effect);
     Object.keys(effectsConfig[effect]).forEach(function (param) {
-      effectTab.add(effectsConfig[effect], param).listen();            
+      effectTab.add(effectsConfig[effect], param).onFinishChange((value) => {
+        databender.bend(image, source.context);
+      });            
     });
   });
 };
@@ -116,15 +118,20 @@ function main() {
   const overlay = new Layer('#overlay', 640, 640);
   overlay.context.fillStyle = '#222';
   overlay.context.fillRect(0, 0, overlay.width, overlay.height);
-  const grid = new Grid(32, 32, source.canvas.height, source.canvas.width);
+  const grid = new Grid(6, 6, source.canvas.height, source.canvas.width);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
-  databender.bend(image, source.context).then((buffer) => {
-    handleDatGUI(databender, source.canvas, source.context, overlay.context);
+  databender.bend(image, source.context).then(() => {
     requestAnimationFrame(step);
   }); 
 
+  handleDatGUI(databender, image, source);
+
   function step() {
+    if (databender.configHasChanged()) {
+      databender.bend(image, source.context);  
+    }
+
     const newCellValues = conway.update(grid);
     if (JSON.stringify(newCellValues) === JSON.stringify(grid.getCellValues())) {
       grid.reset();

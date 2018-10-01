@@ -1,4 +1,5 @@
 var effects = require('./effects');
+var Tuna = require('tunajs');
 
 // Create a Databender instance
 module.exports = function (config, audioCtx) {
@@ -40,6 +41,8 @@ module.exports = function (config, audioCtx) {
     // Create offlineAudioCtx that will house our rendered buffer
     var offlineAudioCtx = new OfflineAudioContext(this.channels, buffer.length * this.channels, this.audioCtx.sampleRate);
 
+    var tuna = new Tuna(offlineAudioCtx);
+
     // Create an AudioBufferSourceNode, which represents an audio source consisting of in-memory audio data
     var bufferSource = offlineAudioCtx.createBufferSource();
 
@@ -57,7 +60,7 @@ module.exports = function (config, audioCtx) {
     if (activeEffectsIndex && activeEffectsIndex.length) {
       activeEffectsIndex.forEach((effect) => {
         if (effect === 'detune' || effect === 'playbackRate') {
-          effects[effect](bufferSource, this.config)
+          effects[effect](this.config, tuna, bufferSource);
           activeEffectsIndex.pop();
         }
       });
@@ -67,7 +70,8 @@ module.exports = function (config, audioCtx) {
       bufferSource.connect(offlineAudioCtx.destination);
     } else {
       var nodes = activeEffectsIndex.map((effect) => { 
-        return effects[effect](bufferSource, this.config, offlineAudioCtx);
+        const context = effect === 'biquad' ? offlineAudioCtx : tuna
+        return effects[effect](this.config, context, bufferSource);
       }).filter(Boolean);
 
       nodes.forEach((node) => { 
