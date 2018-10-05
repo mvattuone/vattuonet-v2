@@ -1,6 +1,6 @@
 const { effectsConfig } = require('./config');
 const random = require("random-js")();
-const Databender = require('./databend.js');
+const Databender = require('databender');
 const dat = require('dat.gui');
 
 function handleDatGUI(databender, image, source) {

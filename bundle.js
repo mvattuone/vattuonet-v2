@@ -3230,7 +3230,7 @@ var vattuonet = (function () {
   });
 
   // Create a Databender instance
-  var databend = function (config, audioCtx) {
+  var databender = function (config, audioCtx) {
     this.audioCtx = audioCtx ? audioCtx : new AudioContext();
     this.channels = 1; 
     this.config = config;
@@ -5861,7 +5861,6 @@ var vattuonet = (function () {
     gui: gui,
     GUI: GUI$1
   };
-  //# sourceMappingURL=dat.gui.module.js.map
 
   var dat_gui_module = /*#__PURE__*/Object.freeze({
     color: color,
@@ -5879,7 +5878,7 @@ var vattuonet = (function () {
 
 
 
-  function handleDatGUI(databender, image, source) {
+  function handleDatGUI(databender$$1, image, source) {
     const gui = new dat.GUI();
 
     const effectsTab = gui.addFolder('Effects');
@@ -5887,7 +5886,7 @@ var vattuonet = (function () {
       const effectTab = effectsTab.addFolder(effect);
       Object.keys(effectsConfig$1[effect]).forEach(function (param) {
         effectTab.add(effectsConfig$1[effect], param).onFinishChange((value) => {
-          databender.bend(image, source.context);
+          databender$$1.bend(image, source.context);
         });            
       });
     });
@@ -5995,16 +5994,16 @@ var vattuonet = (function () {
     overlay.context.fillRect(0, 0, overlay.width, overlay.height);
     const grid = new Grid(6, 6, source.canvas.height, source.canvas.width);
     const conway = new Conway();
-    const databender = new databend(effectsConfig$1);
-    databender.bend(image, source.context).then(() => {
+    const databender$$1 = new databender(effectsConfig$1);
+    databender$$1.bend(image, source.context).then(() => {
       requestAnimationFrame(step);
     }); 
 
-    handleDatGUI(databender, image, source);
+    handleDatGUI(databender$$1, image, source);
 
     function step() {
-      if (databender.configHasChanged()) {
-        databender.bend(image, source.context);  
+      if (databender$$1.configHasChanged()) {
+        databender$$1.bend(image, source.context);  
       }
 
       const newCellValues = conway.update(grid);
