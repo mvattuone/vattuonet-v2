@@ -840,6 +840,7 @@ var vattuonet = (function () {
   };
 
   var bitcrusher = (config, tuna) => {
+    console.log(tuna);
     return new tuna.Bitcrusher({
       bits: config.bitcrusher.bits,
       normfreq: config.bitcrusher.normfreq,
@@ -3263,6 +3264,10 @@ var vattuonet = (function () {
       return JSON.stringify(this.previousConfig) !== JSON.stringify(this.config);
     };
 
+    this.updateConfig = function (effect, param, value) {
+      this.config[effect][param] = value;
+    };
+
     this.render = function (buffer, bypass = false) {
 
       // Create offlineAudioCtx that will house our rendered buffer
@@ -3312,7 +3317,7 @@ var vattuonet = (function () {
       return offlineAudioCtx.startRendering();
     };
 
-    this.draw = function (buffer, context, x = 0, y = 0) {
+    this.draw = function (buffer, context, sourceX = 0, sourceY = 0, x = 0, y = 0, sourceWidth = this.imageData.width, sourceHeight = this.imageData.height, targetWidth = window.innerWidth, targetHeight = window.innerHeight) {
       // Get buffer data
       var bufferData = buffer.getChannelData(0);
 
@@ -3325,14 +3330,20 @@ var vattuonet = (function () {
 
       // putImageData requires an ImageData Object
       // @see https://developer.mozilla.org/en-US/docs/Web/API/ImageData
-      var transformedImage = new ImageData(clampedDataArray, this.imageData.width, this.imageData.height);
-      context.putImageData(transformedImage, x, y);
+      const transformedImageData = new ImageData(this.imageData.width, this.imageData.height);
+      transformedImageData.data.set(clampedDataArray);
+
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = this.imageData.width;
+      tmpCanvas.height = this.imageData.height;
+      tmpCanvas.getContext('2d').putImageData(transformedImageData, sourceX, sourceY);
+      context.drawImage(tmpCanvas, sourceX, sourceY, sourceWidth, sourceHeight, x, y, targetWidth, targetHeight);
     };
 
-    this.bend = function (data, context, x = 0, y = 0) { 
+    this.bend = function (data, context, sourceX = 0, sourceY = 0, x = 0, y = 0, targetWidth = window.innerWidth, targetHeight = window.innerHeight) { 
       return this.convert(data)
         .then((buffer) => this.render(buffer))
-        .then((buffer) => this.draw(buffer, context, x, y))
+        .then((buffer) => this.draw(buffer, context, sourceX, sourceY, x, y, this.imageData.width, this.imageData.height, targetWidth, targetHeight))
     };
 
     return this;
