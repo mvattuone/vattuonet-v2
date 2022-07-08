@@ -1,6 +1,6 @@
 const effectsConfig = {
   bitcrusher: {
-    active: false,
+    active: true,
     bits: 4,
     normfreq: 0.1,
     bufferSize: 256
@@ -12,7 +12,7 @@ const effectsConfig = {
     dryLevel: 1,
     wetLevel: 1,
     level: 1,
-    impulse: "CathedralRoom.wav" 
+    impulse: "CathedralRoom.wav"
   },
   chorus: {
     active: false,
@@ -61,7 +61,7 @@ const effectsConfig = {
     delayTimeRight: 10
   },
   phaser: {
-    active: true,
+    active: false,
     rate: 1.2,
     depth: 0.4,
     feedback: 0.5,

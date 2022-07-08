@@ -1,9 +1,9 @@
-var vattuonet = (function () {
+(function () {
   'use strict';
 
   const effectsConfig = {
     bitcrusher: {
-      active: false,
+      active: true,
       bits: 4,
       normfreq: 0.1,
       bufferSize: 256
@@ -15,7 +15,7 @@ var vattuonet = (function () {
       dryLevel: 1,
       wetLevel: 1,
       level: 1,
-      impulse: "CathedralRoom.wav" 
+      impulse: "CathedralRoom.wav"
     },
     chorus: {
       active: false,
@@ -64,7 +64,7 @@ var vattuonet = (function () {
       delayTimeRight: 10
     },
     phaser: {
-      active: true,
+      active: false,
       rate: 1.2,
       depth: 0.4,
       feedback: 0.5,
@@ -85,6 +85,7 @@ var vattuonet = (function () {
   var config = {
     effectsConfig
   };
+  var config_1 = config.effectsConfig;
 
   var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -814,11 +815,15 @@ var vattuonet = (function () {
   }(commonjsGlobal));
   });
 
+  var random$1 = function (x, y) {
+   return x+(y-x+1)*crypto.getRandomValues(new Uint32Array(1))[0]/2**32|0
+  };
+
   var biquad  = (config, offlineAudioCtx, bufferSource) => {
     if (config.biquad.randomize) {
       var waveArray = new Float32Array(config.biquad.randomValues);
       for (let i=0;i<config.biquad.randomValues;i++) {
-        waveArray[i] = window.random.real(0.0001, config.biquad.biquadFrequency); 
+        waveArray[i] = random$1(0.0001, config.biquad.biquadFrequency); 
       }
     }
     var biquadFilter = offlineAudioCtx.createBiquadFilter();
@@ -840,7 +845,6 @@ var vattuonet = (function () {
   };
 
   var bitcrusher = (config, tuna) => {
-    console.log(tuna);
     return new tuna.Bitcrusher({
       bits: config.bitcrusher.bits,
       normfreq: config.bitcrusher.normfreq,
@@ -871,8 +875,8 @@ var vattuonet = (function () {
   var detune = (config, tuna, bufferSource) => {
     if (config.detune.randomize) {
       var waveArray = new Float32Array(config.detune.randomValues);
-      for (i=0;i<config.detune.randomValues;i++) {
-        waveArray[i] = window.random.real(0.0001, 400); 
+      for (let i=0;i<config.detune.randomValues;i++) {
+        waveArray[i] = random$1(0.0001, 400); 
       }
     }
     if (config.detune.randomize) {
@@ -923,16 +927,6 @@ var vattuonet = (function () {
     }  return bufferSource;
   };
 
-  var wahwah = (config, tuna) => {
-    /* return new tuna.WahWah({ */
-    /*   automode: config.wahwah.automode, */
-    /*   baseFrequency: config.wahwah.baseFrequency, */
-    /*   excursionOctaves: config.wahwah.excursionOctaves, */
-    /*   sweep: config.wahwah.sweep, */
-    /*   sensitivity: config.wahwah.sensitivity */
-    /* }); */
-  };
-
   var biquad$1 = biquad;
   var bitcrusher$1 = bitcrusher;
   var chorus$1 = chorus;
@@ -942,7 +936,6 @@ var vattuonet = (function () {
   var phaser$1 = phaser;
   var pingPong$1 = pingPong;
   var playbackRate$1 = playbackRate;
-  var wahwah$1 = wahwah;
 
   var effects = {
   	biquad: biquad$1,
@@ -953,8 +946,7 @@ var vattuonet = (function () {
   	gain: gain$1,
   	phaser: phaser$1,
   	pingPong: pingPong$1,
-  	playbackRate: playbackRate$1,
-  	wahwah: wahwah$1
+  	playbackRate: playbackRate$1
   };
 
   var tuna = createCommonjsModule(function (module) {
@@ -1283,8 +1275,8 @@ var vattuonet = (function () {
           this.activateNode.connect(this.convolver.input);
           this.convolver.output.connect(this.makeupNode);
           this.makeupNode.connect(this.output);
-
-          this.makeupGain = initValue(properties.makeupGain, this.defaults.makeupGain.value);
+          //don't use makeupGain setter at init to avoid smoothing
+          this.makeupNode.gain.value = initValue(properties.makeupGain, this.defaults.makeupGain.value);
           this.bypass = properties.bypass || this.defaults.bypass.value;
       };
       Tuna.prototype.Cabinet.prototype = Object.create(Super, {
@@ -1314,7 +1306,7 @@ var vattuonet = (function () {
                   return this.makeupNode.gain;
               },
               set: function(value) {
-                  this.makeupNode.gain.value = value;
+                  this.makeupNode.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           newConvolver: {
@@ -1446,8 +1438,8 @@ var vattuonet = (function () {
               },
               set: function(value) {
                   this._feedback = value;
-                  this.feedbackGainNodeLR.gain.value = this._feedback;
-                  this.feedbackGainNodeRL.gain.value = this._feedback;
+                  this.feedbackGainNodeLR.gain.setTargetAtTime(this._feedback, userContext.currentTime, 0.01);
+                  this.feedbackGainNodeRL.gain.setTargetAtTime(this._feedback, userContext.currentTime, 0.01);
               }
           },
           rate: {
@@ -1476,7 +1468,13 @@ var vattuonet = (function () {
           this.makeupNode.connect(this.output);
 
           this.automakeup = initValue(properties.automakeup, this.defaults.automakeup.value);
-          this.makeupGain = initValue(properties.makeupGain, this.defaults.makeupGain.value);
+
+          //don't use makeupGain setter at initialization to avoid smoothing
+          if (this.automakeup) {
+              this.makeupNode.gain.value = dbToWAVolume(this.computeMakeup());
+          } else {
+              this.makeupNode.gain.value = dbToWAVolume(initValue(properties.makeupGain, this.defaults.makeupGain.value));
+          }
           this.threshold = initValue(properties.threshold, this.defaults.threshold.value);
           this.release = initValue(properties.release, this.defaults.release.value);
           this.attack = initValue(properties.attack, this.defaults.attack.value);
@@ -1616,7 +1614,7 @@ var vattuonet = (function () {
                   return this.makeupNode.gain;
               },
               set: function(value) {
-                  this.makeupNode.gain.value = dbToWAVolume(value);
+                  this.makeupNode.gain.setTargetAtTime(dbToWAVolume(value), userContext.currentTime, 0.01);
               }
           }
       });
@@ -1642,14 +1640,15 @@ var vattuonet = (function () {
           this.wet.connect(this.output);
           this.dry.connect(this.output);
 
-          this.dryLevel = initValue(properties.dryLevel, this.defaults.dryLevel.value);
-          this.wetLevel = initValue(properties.wetLevel, this.defaults.wetLevel.value);
-          this.highCut = properties.highCut || this.defaults.highCut.value;
-          this.buffer = properties.impulse || "../impulses/ir_rev_short.wav";
-          this.lowCut = properties.lowCut || this.defaults.lowCut.value;
-          this.level = initValue(properties.level, this.defaults.level.value);
+          //don't use setters at init to avoid smoothing
+          this.dry.gain.value = initValue(properties.dryLevel, this.defaults.dryLevel.value);
+          this.wet.gain.value = initValue(properties.wetLevel, this.defaults.wetLevel.value);
+          this.filterHigh.frequency.value = properties.highCut || this.defaults.highCut.value;
+          this.filterLow.frequency.value = properties.lowCut || this.defaults.lowCut.value;
+          this.output.gain.value = initValue(properties.level, this.defaults.level.value);
           this.filterHigh.type = "lowpass";
           this.filterLow.type = "highpass";
+          this.buffer = properties.impulse || "../impulses/ir_rev_short.wav";
           this.bypass = properties.bypass || this.defaults.bypass.value;
       };
       Tuna.prototype.Convolver.prototype = Object.create(Super, {
@@ -1706,7 +1705,7 @@ var vattuonet = (function () {
                   return this.filterLow.frequency;
               },
               set: function(value) {
-                  this.filterLow.frequency.value = value;
+                  this.filterLow.frequency.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           highCut: {
@@ -1714,7 +1713,7 @@ var vattuonet = (function () {
                   return this.filterHigh.frequency;
               },
               set: function(value) {
-                  this.filterHigh.frequency.value = value;
+                  this.filterHigh.frequency.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           level: {
@@ -1722,7 +1721,7 @@ var vattuonet = (function () {
                   return this.output.gain;
               },
               set: function(value) {
-                  this.output.gain.value = value;
+                  this.output.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           dryLevel: {
@@ -1730,7 +1729,7 @@ var vattuonet = (function () {
                   return this.dry.gain;
               },
               set: function(value) {
-                  this.dry.gain.value = value;
+                  this.dry.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           wetLevel: {
@@ -1738,7 +1737,7 @@ var vattuonet = (function () {
                   return this.wet.gain;
               },
               set: function(value) {
-                  this.wet.gain.value = value;
+                  this.wet.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           buffer: {
@@ -1794,10 +1793,11 @@ var vattuonet = (function () {
           this.dry.connect(this.output);
 
           this.delayTime = properties.delayTime || this.defaults.delayTime.value;
-          this.feedback = initValue(properties.feedback, this.defaults.feedback.value);
-          this.wetLevel = initValue(properties.wetLevel, this.defaults.wetLevel.value);
-          this.dryLevel = initValue(properties.dryLevel, this.defaults.dryLevel.value);
-          this.cutoff = properties.cutoff || this.defaults.cutoff.value;
+          //don't use setters at init to avoid smoothing
+          this.feedbackNode.gain.value = initValue(properties.feedback, this.defaults.feedback.value);
+          this.wet.gain.value = initValue(properties.wetLevel, this.defaults.wetLevel.value);
+          this.dry.gain.value = initValue(properties.dryLevel, this.defaults.dryLevel.value);
+          this.filter.frequency.value = properties.cutoff || this.defaults.cutoff.value;
           this.filter.type = "lowpass";
           this.bypass = properties.bypass || this.defaults.bypass.value;
       };
@@ -1865,7 +1865,7 @@ var vattuonet = (function () {
                   return this.wet.gain;
               },
               set: function(value) {
-                  this.wet.gain.value = value;
+                  this.wet.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           dryLevel: {
@@ -1874,7 +1874,7 @@ var vattuonet = (function () {
                   return this.dry.gain;
               },
               set: function(value) {
-                  this.dry.gain.value = value;
+                  this.dry.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           feedback: {
@@ -1883,7 +1883,7 @@ var vattuonet = (function () {
                   return this.feedbackNode.gain;
               },
               set: function(value) {
-                  this.feedbackNode.gain.value = value;
+                  this.feedbackNode.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           cutoff: {
@@ -1892,7 +1892,7 @@ var vattuonet = (function () {
                   return this.filter.frequency;
               },
               set: function(value) {
-                  this.filter.frequency.value = value;
+                  this.filter.frequency.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           }
       });
@@ -1909,10 +1909,11 @@ var vattuonet = (function () {
           this.activateNode.connect(this.filter);
           this.filter.connect(this.output);
 
-          this.frequency = properties.frequency || this.defaults.frequency.value;
+          //don't use setters for freq and gain at init to avoid smoothing
+          this.filter.frequency.value = properties.frequency || this.defaults.frequency.value;
           this.Q = properties.resonance || this.defaults.Q.value;
           this.filterType = initValue(properties.filterType, this.defaults.filterType.value);
-          this.gain = initValue(properties.gain, this.defaults.gain.value);
+          this.filter.gain.value = initValue(properties.gain, this.defaults.gain.value);
           this.bypass = properties.bypass || this.defaults.bypass.value;
       };
       Tuna.prototype.Filter.prototype = Object.create(Super, {
@@ -1979,7 +1980,7 @@ var vattuonet = (function () {
                   return this.filter.gain;
               },
               set: function(value) {
-                  this.filter.gain.value = value;
+                  this.filter.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           frequency: {
@@ -1988,7 +1989,7 @@ var vattuonet = (function () {
                   return this.filter.frequency;
               },
               set: function(value) {
-                  this.filter.frequency.value = value;
+                  this.filter.frequency.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           }
       });
@@ -2006,7 +2007,8 @@ var vattuonet = (function () {
           this.activateNode.connect(this.gainNode);
           this.gainNode.connect(this.output);
 
-          this.gain = initValue(properties.gain, this.defaults.gain.value);
+          //don't use setter at init to avoid smoothing
+          this.gainNode.gain.value = initValue(properties.gain, this.defaults.gain.value);
           this.bypass = properties.bypass || this.defaults.bypass.value;
       };
       Tuna.prototype.Gain.prototype = Object.create(Super, {
@@ -2034,7 +2036,7 @@ var vattuonet = (function () {
                   return this.gainNode.gain;
               },
               set: function(value) {
-                  this.gainNode.gain.value = value;
+                  this.gainNode.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           }
       });
@@ -2057,10 +2059,10 @@ var vattuonet = (function () {
           in1 = in2 = in3 = in4 = out1 = out2 = out3 = out4 = 0.0;
           var input, output, f, fb, i, length, inputFactor;
           this.processor.onaudioprocess = function(e) {
-              input = e.inputBuffer.getChannelData(0),
-                  output = e.outputBuffer.getChannelData(0),
-                  f = this.cutoff * 1.16,
-                  inputFactor = 0.35013 * (f * f) * (f * f);
+              input = e.inputBuffer.getChannelData(0);
+              output = e.outputBuffer.getChannelData(0);
+              f = this.cutoff * 1.16;
+              inputFactor = 0.35013 * (f * f) * (f * f);
               fb = this.resonance * (1.0 - 0.15 * f * f);
               length = input.length;
               for (i = 0; i < length; i++) {
@@ -2176,9 +2178,9 @@ var vattuonet = (function () {
                       scaled: true
                   },
                   outputGain: {
-                      value: 1,
-                      min: 0,
-                      max: 1,
+                      value: 0,
+                      min: -46,
+                      max: 0,
                       automatable: true,
                       type: FLOAT,
                       scaled: true
@@ -2234,6 +2236,7 @@ var vattuonet = (function () {
               },
               set: function(value) {
                   this._outputGain = dbToWAVolume(value);
+                  this.outputDrive.gain.setValueAtTime(this._outputGain, userContext.currentTime, 0.01);
               }
           },
           algorithmIndex: {
@@ -2500,7 +2503,7 @@ var vattuonet = (function () {
                   this._baseModulationFrequency = value;
                   this.lfoL.offset = this._baseModulationFrequency;
                   this.lfoR.offset = this._baseModulationFrequency;
-                  this._depth = this._depth;
+                  this.depth = this._depth;
               }
           },
           feedback: {
@@ -2509,8 +2512,8 @@ var vattuonet = (function () {
               },
               set: function(value) {
                   this._feedback = value;
-                  this.feedbackGainNodeL.gain.value = this._feedback;
-                  this.feedbackGainNodeR.gain.value = this._feedback;
+                  this.feedbackGainNodeL.gain.setTargetAtTime(this._feedback, userContext.currentTime, 0.01);
+                  this.feedbackGainNodeR.gain.setTargetAtTime(this._feedback, userContext.currentTime, 0.01);
               }
           },
           stereoPhase: {
@@ -2592,7 +2595,7 @@ var vattuonet = (function () {
                   return this.wet.gain;
               },
               set: function (value) {
-                  this.wet.gain.value = value;
+                  this.wet.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           }, 
           feedback: {
@@ -2601,7 +2604,7 @@ var vattuonet = (function () {
                   return this.feedbackLevel.gain;
               },
               set: function (value) {
-                  this.feedbackLevel.gain.value = value;
+                  this.feedbackLevel.gain.setTargetAtTime(value, userContext.currentTime, 0.01);
               }
           },
           defaults: {
@@ -2625,14 +2628,14 @@ var vattuonet = (function () {
                       value: 0.3,
                       min: 0,
                       max: 1,
-                      automatable: false,
+                      automatable: true,
                       type: FLOAT
                   },
                   wetLevel: {
                       value: 0.5,
                       min: 0,
                       max: 1,
-                      automatable: false,
+                      automatable: true,
                       type: FLOAT
                   },
                   bypass: {
@@ -2649,12 +2652,11 @@ var vattuonet = (function () {
               properties = this.getDefaults();
           }
           this.input = userContext.createGain();
-          this.splitter = this.activateNode = userContext.createChannelSplitter(
-                  2),
-              this.amplitudeL = userContext.createGain(),
-              this.amplitudeR = userContext.createGain(),
-              this.merger = userContext.createChannelMerger(2),
-              this.output = userContext.createGain();
+          this.splitter = this.activateNode = userContext.createChannelSplitter(2);
+          this.amplitudeL = userContext.createGain();
+          this.amplitudeR = userContext.createGain();
+          this.merger = userContext.createChannelMerger(2);
+          this.output = userContext.createGain();
           this.lfoL = new userInstance.LFO({
               target: this.amplitudeL.gain,
               callback: pipe
@@ -5834,60 +5836,19 @@ var vattuonet = (function () {
       c.updateDisplay();
     });
   }
-
-  var color = {
-    Color: Color,
-    math: ColorMath,
-    interpret: interpret
-  };
-  var controllers = {
-    Controller: Controller,
-    BooleanController: BooleanController,
-    OptionController: OptionController,
-    StringController: StringController,
-    NumberController: NumberController,
-    NumberControllerBox: NumberControllerBox,
-    NumberControllerSlider: NumberControllerSlider,
-    FunctionController: FunctionController,
-    ColorController: ColorController
-  };
-  var dom$1 = { dom: dom };
-  var gui = { GUI: GUI };
   var GUI$1 = GUI;
-  var index = {
-    color: color,
-    controllers: controllers,
-    dom: dom$1,
-    gui: gui,
-    GUI: GUI$1
-  };
-
-  var dat_gui_module = /*#__PURE__*/Object.freeze({
-    color: color,
-    controllers: controllers,
-    dom: dom$1,
-    gui: gui,
-    GUI: GUI$1,
-    default: index
-  });
-
-  var dat = ( dat_gui_module && index ) || dat_gui_module;
-
-  const { effectsConfig: effectsConfig$1 } = config;
-  const random$1 = random();
-
-
+  //# sourceMappingURL=dat.gui.module.js.map
 
   function handleDatGUI(databender$$1, image, source) {
-    const gui = new dat.GUI();
+    const gui$$1 = new GUI$1();
 
-    const effectsTab = gui.addFolder('Effects');
-    Object.keys(effectsConfig$1).forEach(effect => {
+    const effectsTab = gui$$1.addFolder('Effects');
+    Object.keys(config_1).forEach(effect => {
       const effectTab = effectsTab.addFolder(effect);
-      Object.keys(effectsConfig$1[effect]).forEach(function (param) {
-        effectTab.add(effectsConfig$1[effect], param).onFinishChange((value) => {
+      Object.keys(config_1[effect]).forEach(function(param) {
+        effectTab.add(config_1[effect], param).onFinishChange(() => {
           databender$$1.bend(image, source.context);
-        });            
+        });
       });
     });
   }
@@ -5896,41 +5857,36 @@ var vattuonet = (function () {
     constructor(rows, columns, height, width) {
       this.rows = rows;
       this.columns = columns;
-      let row = 0;
-      let column = 0;
-      const cellWidth = width / columns;
-      const cellHeight = height / rows;
-      this.cells = Array.from({ length: columns * rows }, (cell, i) => {
-        if (i > 0 && i % this.columns === 0) row++;
-        column = i % this.columns;
-        return new Cell(row, column, cellHeight, cellWidth);
+      this.cellWidth = width / columns;
+      this.cellHeight = height / rows;
+      this.cells = Array.from({ length: columns * rows }, () => {
+        const value = random().integer(0, 1);
+        return value;
       });
     }
 
-    getCellValues() {
-      return Int32Array.from(this.cells, (cell) => {
-        return cell.value;
-      });
-    }
-
-    reset() { 
-      this.cells.forEach((cell, index) => {
-        cell.value = random$1.integer(0, 1);
+    reset() {
+      this.cells.map(() => {
+        return random().integer(0, 1);
       });
 
     }
-    
+
     getNeighbors(i) {
-      const rowIndex = this.columns - 1;
-      const sizeIndex = this.cells.length - 1;
-      const left = i % this.columns != 0 ? this.cells[i-1] : 0;
-      const topLeft = i % this.columns != 0 && i > rowIndex ? this.cells[i-this.columns-1] : 0;
-      const top = i > rowIndex ? this.cells[i-this.columns] : 0;
-      const topRight = i % this.columns != 3 && i > rowIndex ? this.cells[i-this.columns+1] : 0;
-      const right = i % this.columns != 3 ? this.cells[i+1] : 0;
-      const bottomRight = i % this.columns != 3 && i < this.cells.length - this.columns ? this.cells[i+this.columns+1] : 0;
-      const bottom = i < this.cells.length - this.columns ? this.cells[i+this.columns] : 0;
-      const bottomLeft = i % rowIndex === 1 && i < sizeIndex - rowIndex ? this.cells[i + this.columns - 1] : 0;
+
+      const cellIsInFirstRow = i <= this.columns - 1;
+      const cellIsInLastRow = i >= this.cells.length - this.columns;
+      const cellIsInFirstColumn = i % this.columns === 0;
+      const cellIsInLastColumn = i % this.columns === (this.columns - 1);
+
+      const left = !cellIsInFirstColumn ? this.cells[i - 1] : 0;
+      const topLeft = !cellIsInFirstColumn && !cellIsInFirstRow ? this.cells[i - this.columns - 1] : 0;
+      const top = !cellIsInFirstRow ? this.cells[i - this.columns] : 0;
+      const topRight = !cellIsInLastColumn && !cellIsInFirstRow ? this.cells[i - this.columns + 1] : 0;
+      const right = !cellIsInLastColumn ? this.cells[i + 1] : 0;
+      const bottomRight = !cellIsInLastColumn && !cellIsInLastRow ? this.cells[i + this.columns + 1] : 0;
+      const bottom = !cellIsInLastRow ? this.cells[i + this.columns] : 0;
+      const bottomLeft = !cellIsInLastRow && !cellIsInFirstColumn ? this.cells[i + this.columns - 1] : 0;
       return [
         left, topLeft, top, topRight, right, bottomRight, bottom, bottomLeft
       ].filter(Boolean);
@@ -5939,52 +5895,33 @@ var vattuonet = (function () {
 
   class Conway {
     update(grid) {
-      return grid.getCellValues().map((cell, i) => {
+      return grid.cells.map((cell, i) => {
         const neighbors = grid.getNeighbors(i);
-        const livingNeighbors = neighbors.reduce((acc, cur) => 
-          cur.value === 1 ? acc += 1 : acc, 0);
 
         if (cell === 0) {
-          if (livingNeighbors == 3) {
-            cell = 1;
+          if (neighbors.length === 3) {
+            return 1;
           }
         } else {
-          if (livingNeighbors < 2 || livingNeighbors > 3) { 
-            cell = 0;
-          } 
+          if (neighbors.length < 2 || neighbors.length > 3) {
+            return 0;
+          }
         }
 
-        return cell; 
+        return cell;
       });
     }
   }
 
   class Layer {
-    constructor(id, height = window.innerHeight, width = window.innerWidth) { 
-      this.canvas = document.querySelector(id); 
+    constructor(id, height = window.innerHeight, width = window.innerWidth) {
+      this.canvas = document.querySelector(id);
       this.context = this.canvas.getContext('2d');
       this.canvas.width = width;
       this.canvas.height = height;
     }
-
-    clear(x = 0, y = 0, width = this.canvas.width, height = this.canvas.height) {
-      this.context.clearRect(x, y, width, height);
-    }
-
-    draw(image) {
-      this.context.drawImage(image, 0, 0);
-    }
   }
 
-  class Cell {
-    constructor(row, column, height, width) {
-      this.x = width * column;
-      this.y = height * row;
-      this.height = height;
-      this.width = width;
-      this.value = random$1.integer(0, 1);
-    }
-  }
 
   function main() {
     const image = document.querySelector('img');
@@ -5992,45 +5929,60 @@ var vattuonet = (function () {
     const overlay = new Layer('#overlay', 640, 640);
     overlay.context.fillStyle = '#222';
     overlay.context.fillRect(0, 0, overlay.width, overlay.height);
-    const grid = new Grid(6, 6, source.canvas.height, source.canvas.width);
+    const grid = new Grid(640, 640, source.canvas.height, source.canvas.width);
+    let imageData = new ImageData(640, 640);
     const conway = new Conway();
-    const databender$$1 = new databender(effectsConfig$1);
+    const databender$$1 = new databender(config_1);
     databender$$1.bend(image, source.context).then(() => {
       requestAnimationFrame(step);
-    }); 
+    });
+
+    function updateImageData(cells, cellWidth, cw, ch) {
+      const cellRowPixels = cw * 4;
+
+      for (var i = 0; i < cells.length - 1; i++) {
+        const columnIndex = i % grid.columns;
+        const rowIndex = Math.floor(i / grid.columns);
+        if (cells[i] !== grid.cells[i]) {
+          const startingPixel = (columnIndex * cellWidth * 4) + (cellRowPixels * cellWidth * rowIndex);
+
+          console.log(startingPixel);
+
+          for (var j = 0; j < cellWidth; j++) {
+            for (var k = 0; k < cellWidth * 4; k += 4) {
+              imageData.data[startingPixel + k + (cellRowPixels * j)] = 34;
+              imageData.data[startingPixel + k + (cellRowPixels * j) + 1] = 34;
+              imageData.data[startingPixel + k + (cellRowPixels * j) + 2] = 34;
+              imageData.data[startingPixel + k + (cellRowPixels * j) + 3] = cells[i] === 1 ? 0 : 255;
+            }
+          }
+        }
+      }
+
+      return imageData;
+    }
 
     handleDatGUI(databender$$1, image, source);
 
     function step() {
-      if (databender$$1.configHasChanged()) {
-        databender$$1.bend(image, source.context);  
+
+      function redrawGrid() {
+        const newCells = conway.update(grid);
+        imageData = updateImageData(newCells, grid.cellWidth, overlay.canvas.width, overlay.canvas.height);
+        overlay.context.putImageData(imageData, 0, 0);
+        grid.cells = newCells;
       }
 
-      const newCellValues = conway.update(grid);
-      if (JSON.stringify(newCellValues) === JSON.stringify(grid.getCellValues())) {
-        grid.reset();
+      if (databender$$1.configHasChanged()) {
+        databender$$1.bend(image, source.getContext('2d')).then(redrawGrid);
       } else {
-        grid.cells.forEach((cell, index) => {
-          cell.value = newCellValues[index];
-          if (cell.value === 1) {
-            overlay.clear(cell.x, cell.y, cell.width, cell.height); 
-          } else {
-            overlay.context.fillRect(cell.x, cell.y, cell.width, cell.height);
-          }
-        });
+        redrawGrid();
       }
 
       requestAnimationFrame(step);
     }
-
   }
 
-  window.onload = () => main();
-
-  var src = {
-
-  };
-
-  return src;
+  main();
 
 }());
