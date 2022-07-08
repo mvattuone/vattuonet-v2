@@ -1,6 +1,6 @@
 const effectsConfig = {
   bitcrusher: {
-    active: true,
+    active: false,
     bits: 4,
     normfreq: 0.1,
     bufferSize: 256
@@ -23,27 +23,27 @@ const effectsConfig = {
     bypass: 0
   },
   biquad: {
-    active: false,
+    active: true,
     areaOfEffect: 1,
     detune: 0,
     enablePartial: false,
-    randomize: false,
+    randomize: true,
     quality: 1,
-    randomValues: 2,
-    type: "highpass",
-    biquadFrequency: 4000
+    randomValues: 33,
+    type: "lowpass",
+    biquadFrequency: 30300
   },
   gain: {
     active: false,
     value: 1
   },
   detune: {
-    active: false,
+    active: true,
     areaOfEffect: 1,
     enablePartial: false,
     randomize: false,
     randomValues: 2,
-    value: 0
+    value: 0.04
   },
   playbackRate: {
     active: false,
@@ -54,7 +54,7 @@ const effectsConfig = {
     value: 1
   },
   pingPong: {
-    active: true,
+    active: false,
     feedback: 0.3,
     wetLevel: 0.5,
     delayTimeLeft: 10,
@@ -67,15 +67,6 @@ const effectsConfig = {
     feedback: 0.5,
     stereoPhase: 10,
     baseModulationFrequency: 500
-  },
-  wahwah: {
-    active: false,
-    automode: true,
-    baseFrequency: 0.81,
-    excursionOctaves: 2,
-    sweep: 0.2,
-    resonance: 40,
-    sensitivity: 0.5
   }
 }
 

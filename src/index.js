@@ -91,12 +91,13 @@ class Layer {
 
 function main() {
   const image = document.querySelector('img');
-  const source = new Layer('#source', 640, 640);
-  const overlay = new Layer('#overlay', 640, 640);
+  const source = new Layer('#source', 5120, 5120);
+  const overlay = new Layer('#overlay', 5120, 5120);
   overlay.context.fillStyle = '#222';
   overlay.context.fillRect(0, 0, overlay.width, overlay.height);
   const grid = new Grid(640, 640, source.canvas.height, source.canvas.width);
-  let imageData = new ImageData(640, 640);
+  let imageData = overlay.context.getImageData(0, 0, 5120, 5120);
+  let buffer = new Uint32Array(imageData.data.buffer);
   const conway = new Conway();
   const databender = new Databender(effectsConfig);
   databender.bend(image, source.context).then(() => {
@@ -104,22 +105,16 @@ function main() {
   });
 
   function updateImageData(cells, cellWidth, cw, ch) {
-    const cellRowPixels = cw * 4;
-
     for (var i = 0; i < cells.length - 1; i++) {
       const columnIndex = i % grid.columns;
       const rowIndex = Math.floor(i / grid.columns);
       if (cells[i] !== grid.cells[i]) {
-        const startingPixel = (columnIndex * cellWidth * 4) + (cellRowPixels * cellWidth * rowIndex);
-
-        console.log(startingPixel);
+        const startingPixel = (columnIndex * cellWidth) + (cw * cellWidth * rowIndex);
 
         for (var j = 0; j < cellWidth; j++) {
-          for (var k = 0; k < cellWidth * 4; k += 4) {
-            imageData.data[startingPixel + k + (cellRowPixels * j)] = 34;
-            imageData.data[startingPixel + k + (cellRowPixels * j) + 1] = 34;
-            imageData.data[startingPixel + k + (cellRowPixels * j) + 2] = 34;
-            imageData.data[startingPixel + k + (cellRowPixels * j) + 3] = cells[i] === 1 ? 0 : 255;
+          for (var k = 0; k < cellWidth; k++) {
+            const pixelToChange = startingPixel + k + cw * j;
+            buffer[pixelToChange] = cells[i] === 1 ? 0x00222222 : 0xFF222222;
           }
         }
       }

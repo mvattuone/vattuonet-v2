@@ -3,7 +3,7 @@
 
   const effectsConfig = {
     bitcrusher: {
-      active: true,
+      active: false,
       bits: 4,
       normfreq: 0.1,
       bufferSize: 256
@@ -26,27 +26,27 @@
       bypass: 0
     },
     biquad: {
-      active: false,
+      active: true,
       areaOfEffect: 1,
       detune: 0,
       enablePartial: false,
-      randomize: false,
+      randomize: true,
       quality: 1,
-      randomValues: 2,
-      type: "highpass",
-      biquadFrequency: 4000
+      randomValues: 33,
+      type: "lowpass",
+      biquadFrequency: 30300
     },
     gain: {
       active: false,
       value: 1
     },
     detune: {
-      active: false,
+      active: true,
       areaOfEffect: 1,
       enablePartial: false,
       randomize: false,
       randomValues: 2,
-      value: 0
+      value: 0.04
     },
     playbackRate: {
       active: false,
@@ -57,7 +57,7 @@
       value: 1
     },
     pingPong: {
-      active: true,
+      active: false,
       feedback: 0.3,
       wetLevel: 0.5,
       delayTimeLeft: 10,
@@ -70,15 +70,6 @@
       feedback: 0.5,
       stereoPhase: 10,
       baseModulationFrequency: 500
-    },
-    wahwah: {
-      active: false,
-      automode: true,
-      baseFrequency: 0.81,
-      excursionOctaves: 2,
-      sweep: 0.2,
-      resonance: 40,
-      sensitivity: 0.5
     }
   };
 
@@ -5925,12 +5916,13 @@
 
   function main() {
     const image = document.querySelector('img');
-    const source = new Layer('#source', 640, 640);
-    const overlay = new Layer('#overlay', 640, 640);
+    const source = new Layer('#source', 5120, 5120);
+    const overlay = new Layer('#overlay', 5120, 5120);
     overlay.context.fillStyle = '#222';
     overlay.context.fillRect(0, 0, overlay.width, overlay.height);
     const grid = new Grid(640, 640, source.canvas.height, source.canvas.width);
-    let imageData = new ImageData(640, 640);
+    let imageData = overlay.context.getImageData(0, 0, 5120, 5120);
+    let buffer = new Uint32Array(imageData.data.buffer);
     const conway = new Conway();
     const databender$$1 = new databender(config_1);
     databender$$1.bend(image, source.context).then(() => {
@@ -5938,22 +5930,16 @@
     });
 
     function updateImageData(cells, cellWidth, cw, ch) {
-      const cellRowPixels = cw * 4;
-
       for (var i = 0; i < cells.length - 1; i++) {
         const columnIndex = i % grid.columns;
         const rowIndex = Math.floor(i / grid.columns);
         if (cells[i] !== grid.cells[i]) {
-          const startingPixel = (columnIndex * cellWidth * 4) + (cellRowPixels * cellWidth * rowIndex);
-
-          console.log(startingPixel);
+          const startingPixel = (columnIndex * cellWidth) + (cw * cellWidth * rowIndex);
 
           for (var j = 0; j < cellWidth; j++) {
-            for (var k = 0; k < cellWidth * 4; k += 4) {
-              imageData.data[startingPixel + k + (cellRowPixels * j)] = 34;
-              imageData.data[startingPixel + k + (cellRowPixels * j) + 1] = 34;
-              imageData.data[startingPixel + k + (cellRowPixels * j) + 2] = 34;
-              imageData.data[startingPixel + k + (cellRowPixels * j) + 3] = cells[i] === 1 ? 0 : 255;
+            for (var k = 0; k < cellWidth; k++) {
+              const pixelToChange = startingPixel + k + cw * j;
+              buffer[pixelToChange] = cells[i] === 1 ? 0x00222222 : 0xFF222222;
             }
           }
         }

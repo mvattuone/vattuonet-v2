@@ -19,13 +19,22 @@
       }
 
       .image-container {
-        width: 100%;
-        height: 100%;
         position: relative;
       }
 
+      .text-wrapper {
+        align-items:center;
+        justify-content:center;
+        display:flex;
+        flex-direction: column;
+        z-index: 400;
+        height: 100vh;
+        position: relative;
+      }
+      
       .text-container {
-        padding: 0 40px;
+        background:rgba(132,40,291,1);
+        padding: 40px;
       }
 
       img {
@@ -58,12 +67,14 @@
       <canvas id="overlay"></canvas>
       <script src="bundle.js"></script>
     </div>
-    <div class="text-container">
-      <div id="changedCells"></div>
-      <h1>mike vattuone</h1>
-      <p>"he does stuff on the internet"</p>
-      <a href="mailto:mike@vattuo.net">email me</a>
-      <a href="https://github.com/mvattuone">see my github</a>
+    <div class="text-wrapper">
+      <div class="text-container">
+        <div id="changedCells"></div>
+        <h1>mike vattuone</h1>
+        <p>"he does stuff on the internet"</p>
+        <a href="mailto:mike@vattuo.net">email me</a>
+        <a href="https://github.com/mvattuone">see my github</a>
+      </div>
     </div>
   </body>
 </html>
