@@ -5913,15 +5913,17 @@
     }
   }
 
+  const WIDTH = 5120;
+  const HEIGHT = 5120;
 
   function main() {
     const image = document.querySelector('img');
-    const source = new Layer('#source', 5120, 5120);
-    const overlay = new Layer('#overlay', 5120, 5120);
+    const source = new Layer('#source', WIDTH, HEIGHT);
+    const overlay = new Layer('#overlay', WIDTH, HEIGHT);
     overlay.context.fillStyle = '#222';
     overlay.context.fillRect(0, 0, overlay.width, overlay.height);
-    const grid = new Grid(640, 640, source.canvas.height, source.canvas.width);
-    let imageData = overlay.context.getImageData(0, 0, 5120, 5120);
+    const grid = new Grid(WIDTH, HEIGHT, source.canvas.height, source.canvas.width);
+    let imageData = overlay.context.getImageData(0, 0, WIDTH, HEIGHT);
     let buffer = new Uint32Array(imageData.data.buffer);
     const conway = new Conway();
     const databender$$1 = new databender(config_1);

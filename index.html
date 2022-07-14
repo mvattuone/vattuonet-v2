@@ -18,8 +18,14 @@
         color: #FFF;
       }
 
+      body .dg.ac {
+          z-index:1000;
+
+      }
       .image-container {
         position: relative;
+        width: 100vw;
+        height: 100vh;
       }
 
       .text-wrapper {
@@ -29,7 +35,7 @@
         flex-direction: column;
         z-index: 400;
         height: 100vh;
-        position: relative;
+        position: absolute;
       }
       
       .text-container {
@@ -44,6 +50,10 @@
       #source, 
       #overlay {
         position: absolute;
+        object-fit: cover;
+        height: 100%;
+        width: 100%;
+
       }
 
       #source {
