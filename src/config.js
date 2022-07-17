@@ -38,7 +38,7 @@ const effectsConfig = {
     value: 1
   },
   detune: {
-    active: true,
+    active: false,
     areaOfEffect: 1,
     enablePartial: false,
     randomize: false,

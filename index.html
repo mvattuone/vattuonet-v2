@@ -14,6 +14,8 @@
         min-height: 100vh;
       }
 
+      h1 { margin: 0; }
+
       a {
         color: #FFF;
       }
@@ -26,33 +28,48 @@
         position: relative;
         width: 100vw;
         height: 100vh;
+        overflow:hidden;
       }
 
       .text-wrapper {
         align-items:center;
-        justify-content:center;
         display:flex;
         flex-direction: column;
-        z-index: 400;
         height: 100vh;
+        justify-content:center;
+        left: 0;
         position: absolute;
+        top: 0;
+        z-index: 400;
       }
       
       .text-container {
-        background:rgba(132,40,291,1);
+        background:rgba(140,200,93,1);
         padding: 40px;
       }
 
-      img {
+      img { 
+        transition: all 0.5s;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%) scale(1);
+        right: 50px;
+      }
+
+      img.clicked {
+        transform-origin: 100% 0;
+        transform: translateY(0);
+        right: 0;
+        top: 0;
+      }
+
+      img.hidden {
         display: none;
       }
 
       #source, 
       #overlay {
         position: absolute;
-        object-fit: cover;
-        height: 100%;
-        width: 100%;
 
       }
 
@@ -65,8 +82,12 @@
         z-index: 2;
       }
 
-      #changedCells {
-        color: white;
+      #secret {
+        cursor: pointer;
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
       }
     </style>
   </head>
@@ -79,12 +100,12 @@
     </div>
     <div class="text-wrapper">
       <div class="text-container">
-        <div id="changedCells"></div>
         <h1>mike vattuone</h1>
         <p>"he does stuff on the internet"</p>
         <a href="mailto:mike@vattuo.net">email me</a>
         <a href="https://github.com/mvattuone">see my github</a>
       </div>
     </div>
+    <div id="secret">π</div>
   </body>
 </html>

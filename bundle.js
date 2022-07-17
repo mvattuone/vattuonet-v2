@@ -41,7 +41,7 @@
       value: 1
     },
     detune: {
-      active: true,
+      active: false,
       areaOfEffect: 1,
       enablePartial: false,
       randomize: false,
@@ -5850,7 +5850,7 @@
       this.columns = columns;
       this.cellWidth = width / columns;
       this.cellHeight = height / rows;
-      this.cells = Array.from({ length: columns * rows }, () => {
+      this.cells = Uint8Array.from({ length: columns * rows }, () => {
         const value = random().integer(0, 1);
         return value;
       });
@@ -5870,37 +5870,49 @@
       const cellIsInFirstColumn = i % this.columns === 0;
       const cellIsInLastColumn = i % this.columns === (this.columns - 1);
 
-      const left = !cellIsInFirstColumn ? this.cells[i - 1] : 0;
-      const topLeft = !cellIsInFirstColumn && !cellIsInFirstRow ? this.cells[i - this.columns - 1] : 0;
-      const top = !cellIsInFirstRow ? this.cells[i - this.columns] : 0;
-      const topRight = !cellIsInLastColumn && !cellIsInFirstRow ? this.cells[i - this.columns + 1] : 0;
-      const right = !cellIsInLastColumn ? this.cells[i + 1] : 0;
-      const bottomRight = !cellIsInLastColumn && !cellIsInLastRow ? this.cells[i + this.columns + 1] : 0;
-      const bottom = !cellIsInLastRow ? this.cells[i + this.columns] : 0;
-      const bottomLeft = !cellIsInLastRow && !cellIsInFirstColumn ? this.cells[i + this.columns - 1] : 0;
-      return [
-        left, topLeft, top, topRight, right, bottomRight, bottom, bottomLeft
-      ].filter(Boolean);
-    }
-  }
+      let count = 0;
 
-  class Conway {
-    update(grid) {
-      return grid.cells.map((cell, i) => {
-        const neighbors = grid.getNeighbors(i);
+      // left
+      if (!cellIsInFirstColumn) {
+        count += this.cells[i - 1];
+      }
 
-        if (cell === 0) {
-          if (neighbors.length === 3) {
-            return 1;
-          }
-        } else {
-          if (neighbors.length < 2 || neighbors.length > 3) {
-            return 0;
-          }
-        }
+      // top left
+      if (!cellIsInFirstColumn && !cellIsInFirstRow) {
+        count += this.cells[i - this.columns - 1];
+      }
 
-        return cell;
-      });
+      // top
+      if (!cellIsInFirstRow) {
+        count += !cellIsInFirstRow ? this.cells[i - this.columns] : 0;
+      }
+
+      // topright
+      if (!cellIsInLastColumn && !cellIsInFirstRow) {
+        count += this.cells[i - this.columns + 1];
+      }
+
+      // right
+      if (!cellIsInLastColumn) {
+        count += this.cells[i + 1];
+      }
+
+      // bottom right
+      if (!cellIsInLastColumn && !cellIsInLastRow) {
+        count += this.cells[i + this.columns + 1];
+      }
+
+      // bottom
+      if (!cellIsInLastRow) {
+        count += this.cells[i + this.columns];
+      }
+
+      // bottom left
+      if (!cellIsInLastRow && !cellIsInFirstColumn) {
+        count += this.cells[i + this.columns - 1];
+      }
+
+      return count;
     }
   }
 
@@ -5913,52 +5925,79 @@
     }
   }
 
-  const WIDTH = 5120;
-  const HEIGHT = 5120;
+  const WIDTH = window.innerWidth;
+  const HEIGHT = window.innerWidth;
+
 
   function main() {
     const image = document.querySelector('img');
-    const source = new Layer('#source', WIDTH, HEIGHT);
-    const overlay = new Layer('#overlay', WIDTH, HEIGHT);
+    const source = new Layer('#source', window.innerWidth, window.innerWidth);
+    const overlay = new Layer('#overlay', window.innerWidth, window.innerWidth);
     overlay.context.fillStyle = '#222';
     overlay.context.fillRect(0, 0, overlay.width, overlay.height);
     const grid = new Grid(WIDTH, HEIGHT, source.canvas.height, source.canvas.width);
-    let imageData = overlay.context.getImageData(0, 0, WIDTH, HEIGHT);
+    const gridLength = grid.cells.length;
+    const cw = overlay.canvas.width;
+    let imageData = overlay.context.getImageData(0, 0, window.innerWidth, window.innerWidth);
     let buffer = new Uint32Array(imageData.data.buffer);
-    const conway = new Conway();
+    let newCells = new Uint8Array(gridLength);
     const databender$$1 = new databender(config_1);
-    databender$$1.bend(image, source.context).then(() => {
-      requestAnimationFrame(step);
+    const secret = document.getElementById('secret');
+    secret.addEventListener('click', (e) => {
+      image.classList.add('clicked');
+      const scaleX = window.innerWidth / image.width;
+      const scaleY = window.innerHeight / image.height;
+      image.style.transform = `scale(${scaleX}, ${scaleY})`;
+      databender$$1.bend(image, source.context).then(() => {
+        image.classList.add('hidden');
+        requestAnimationFrame(step);
+      });
     });
 
-    function updateImageData(cells, cellWidth, cw, ch) {
-      for (var i = 0; i < cells.length - 1; i++) {
-        const columnIndex = i % grid.columns;
-        const rowIndex = Math.floor(i / grid.columns);
-        if (cells[i] !== grid.cells[i]) {
-          const startingPixel = (columnIndex * cellWidth) + (cw * cellWidth * rowIndex);
-
-          for (var j = 0; j < cellWidth; j++) {
-            for (var k = 0; k < cellWidth; k++) {
-              const pixelToChange = startingPixel + k + cw * j;
-              buffer[pixelToChange] = cells[i] === 1 ? 0x00222222 : 0xFF222222;
-            }
-          }
-        }
-      }
-
-      return imageData;
-    }
 
     handleDatGUI(databender$$1, image, source);
+
+    function update() {
+      for (let i = 0; i < gridLength; i++) {
+        const neighbors = grid.getNeighbors(i);
+
+
+        if (grid.cells[i] === 0 && neighbors === 3) {
+          const columnIndex = i % grid.columns;
+          const rowIndex = Math.floor(i / grid.columns);
+          const startingPixel = (columnIndex * grid.cellWidth) + (cw * grid.cellWidth * rowIndex);
+
+          for (var j = 0; j < grid.cellWidth; j++) {
+            for (var k = 0; k < grid.cellWidth; k++) {
+              const pixelToChange = startingPixel + k + cw * j;
+              buffer[pixelToChange] = 0x00222222;
+            }
+          }
+          newCells[i] = 1;
+        } else if (grid.cells[i] === 1 && (neighbors < 2 || neighbors > 3)) {
+          const columnIndex = i % grid.columns;
+          const rowIndex = Math.floor(i / grid.columns);
+          const startingPixel = (columnIndex * grid.cellWidth) + (cw * grid.cellWidth * rowIndex);
+
+          for (var j = 0; j < grid.cellWidth; j++) {
+            for (var k = 0; k < grid.cellWidth; k++) {
+              const pixelToChange = startingPixel + k + cw * j;
+              buffer[pixelToChange] = 0xFF222222;
+            }
+          }
+          newCells[i] = 0;
+        } else if (grid.cells[i] === 1) {
+          newCells[i] = grid.cells[i];
+        }
+      }    grid.cells = newCells.slice(0);
+      newCells.fill(0);
+    }
 
     function step() {
 
       function redrawGrid() {
-        const newCells = conway.update(grid);
-        imageData = updateImageData(newCells, grid.cellWidth, overlay.canvas.width, overlay.canvas.height);
+        update();
         overlay.context.putImageData(imageData, 0, 0);
-        grid.cells = newCells;
       }
 
       if (databender$$1.configHasChanged()) {
@@ -5971,6 +6010,6 @@
     }
   }
 
-  main();
+  window.onload = () => main();
 
 }());
